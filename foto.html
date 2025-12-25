@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Royal Gallery | Rachmat & Dini</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Jost:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <style>
+        /* =========================================
+           1. ROYAL THEME STYLE
+           ========================================= */
+        :root {
+            --primary: #d81b60;
+            --primary-dark: #ad1457;
+            --accent: #FFD700;
+            --bg-pink: #fce4ec;
+            --glass: rgba(255, 255, 255, 0.9);
+            --shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            font-family: 'Jost', sans-serif;
+            background-color: var(--bg-pink);
+            background-image: radial-gradient(circle at 50% 50%, #f8bbd0, #fce4ec, #ffffff);
+            min-height: 100vh;
+            color: #444;
+            padding-bottom: 50px;
+        }
+
+        /* HEADER */
+        .gallery-header {
+            text-align: center; padding: 40px 20px;
+            position: relative;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        
+        .header-top {
+            width: 100%; display: flex; justify-content: space-between; align-items: center;
+            max-width: 1400px; margin-bottom: 20px;
+        }
+
+        .home-btn {
+            text-decoration: none; color: var(--primary);
+            font-size: 1rem; transition: 0.3s;
+            display: flex; align-items: center; gap: 8px; font-weight: 600;
+        }
+        .home-btn:hover { transform: translateX(-5px); }
+
+        /* TOMBOL LOGIN (GAYA ROYAL) */
+        .auth-btn {
+            padding: 8px 25px; border-radius: 50px;
+            background-color: white; border: 2px solid var(--primary);
+            color: var(--primary); font-family: 'Jost', sans-serif;
+            font-weight: 700; font-size: 0.8rem; text-transform: uppercase;
+            letter-spacing: 1px; cursor: pointer; transition: all 0.3s ease;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+        }
+        .auth-btn:hover {
+            background-color: var(--primary); color: white;
+            box-shadow: 0 5px 15px rgba(216, 27, 96, 0.3); transform: translateY(-2px);
+        }
+
+        .title {
+            font-family: 'Great Vibes', cursive;
+            font-size: clamp(3rem, 10vw, 5rem);
+            color: var(--primary);
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            line-height: 1.2; padding: 0 10px;
+        }
+        .subtitle {
+            font-family: 'Playfair Display', serif;
+            text-transform: uppercase; letter-spacing: 3px; color: #888;
+            font-size: 0.9rem; border-bottom: 2px solid var(--accent);
+            display: inline-block; padding-bottom: 5px;
+        }
+
+        /* FAB ADD BUTTON (Admin Only) */
+        .fab-add {
+            position: fixed; bottom: 30px; right: 30px;
+            width: 60px; height: 60px; background: var(--primary);
+            color: white; border-radius: 50%; border: none;
+            font-size: 1.5rem; cursor: pointer;
+            box-shadow: 0 10px 20px rgba(216, 27, 96, 0.4);
+            z-index: 100; transition: 0.3s;
+            display: none; /* Hidden by default */
+            align-items: center; justify-content: center;
+        }
+        .fab-add:hover { transform: scale(1.1) rotate(90deg); }
+
+        /* MASONRY GRID LAYOUT */
+        .gallery-container {
+            column-count: 4; column-gap: 20px;
+            padding: 20px; max-width: 1400px; margin: 0 auto;
+        }
+
+        .gallery-item {
+            break-inside: avoid; margin-bottom: 20px;
+            position: relative; border-radius: 15px; overflow: hidden;
+            box-shadow: var(--shadow); cursor: pointer;
+            transition: 0.4s; background: white;
+            opacity: 0; animation: fadeUp 0.8s forwards;
+        }
+        .gallery-item:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(0,0,0,0.2); }
+
+        .g-img { width: 100%; display: block; border-radius: 15px; transition: 0.5s; }
+        
+        .g-overlay {
+            position: absolute; inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+            opacity: 0; transition: 0.3s;
+            display: flex; flex-direction: column; justify-content: flex-end; padding: 20px;
+        }
+        .gallery-item:hover .g-overlay { opacity: 1; }
+        .g-caption { color: white; font-family: 'Playfair Display', serif; font-size: 1.1rem; }
+        .g-date { color: #ddd; font-size: 0.8rem; margin-top: 5px; }
+
+        .btn-delete {
+            position: absolute; top: 10px; right: 10px;
+            background: white; color: red; border:none;
+            width: 30px; height: 30px; border-radius: 50%;
+            cursor: pointer; display: none; /* Hidden default */
+            align-items: center; justify-content: center; z-index: 10;
+        }
+
+        /* LIGHTBOX */
+        .lightbox {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95);
+            z-index: 2000; display: none; align-items: center; justify-content: center;
+            opacity: 0; transition: 0.3s; padding: 20px;
+        }
+        .lightbox.active { display: flex; opacity: 1; }
+        .lb-img { max-width: 90%; max-height: 85vh; border-radius: 5px; box-shadow: 0 0 50px rgba(255,255,255,0.1); }
+        .lb-close { position: absolute; top: 30px; right: 30px; color: white; font-size: 2rem; cursor: pointer; }
+        .lb-caption { position: absolute; bottom: 30px; color: white; text-align: center; font-family: 'Playfair Display', serif; font-size: 1.2rem; }
+
+        /* MODALS (Login & Add) */
+        .modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px);
+            z-index: 3000; display: none; align-items: center; justify-content: center;
+        }
+        .modal.active { display: flex; }
+        .modal-box {
+            background: white; width: 90%; max-width: 400px; padding: 30px;
+            border-radius: 20px; border-top: 5px solid var(--primary);
+            animation: popup 0.4s;
+        }
+        .form-group { margin-bottom: 15px; }
+        .form-input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-family: 'Jost'; }
+        .btn-save { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 50px; font-weight: 600; cursor: pointer; }
+
+        /* RESPONSIVE */
+        @media(max-width: 1000px) { .gallery-container { column-count: 3; } }
+        @media(max-width: 768px) { .gallery-container { column-count: 2; } .title { font-size: 3.5rem; } }
+        @media(max-width: 480px) { .gallery-container { column-count: 1; } }
+
+        @keyframes fadeUp { from{opacity:0; transform:translateY(20px)} to{opacity:1; transform:translateY(0)} }
+        @keyframes popup { from{transform:scale(0.8); opacity:0} to{transform:scale(1); opacity:1} }
+    </style>
+</head>
+<body>
+
+    <header class="gallery-header">
+        <div class="header-top">
+            <a href="index.html" class="home-btn"><i class="fa-solid fa-arrow-left"></i> Kembali</a>
+            <button class="auth-btn" id="btnLogin" onclick="toggleLoginModal()">LOGIN</button>
+        </div>
+        
+        <h1 class="title">Our Gallery</h1>
+        <span class="subtitle">Every Picture tells a Story</span>
+    </header>
+
+    <div class="gallery-container" id="galleryGrid">
+        <div style="text-align:center; grid-column:span 4; color:#888;">
+            <i class="fa-solid fa-circle-notch fa-spin"></i> Memuat Kenangan...
+        </div>
+    </div>
+
+    <button class="fab-add" id="btnAdd" onclick="openModalAdd()"><i class="fa-solid fa-plus"></i></button>
+
+    <div class="modal" id="modalLogin">
+        <div class="modal-box">
+            <h3 style="margin-bottom:20px; color:var(--primary); text-align:center;">Admin Login</h3>
+            <div class="form-group"><input type="email" id="email" class="form-input" placeholder="Email"></div>
+            <div class="form-group"><input type="password" id="pass" class="form-input" placeholder="Password"></div>
+            <button class="btn-save" onclick="doLogin()">Masuk</button>
+            <div style="text-align:center; margin-top:15px; cursor:pointer; color:#888;" onclick="closeAllModals()">Batal</div>
+        </div>
+    </div>
+
+    <div class="modal" id="modalAdd">
+        <div class="modal-box">
+            <h3 style="margin-bottom:20px; color:var(--primary); text-align:center;">Tambah Foto Baru</h3>
+            <div class="form-group">
+                <label style="font-size:0.8rem; color:#666">Link Gambar (URL)</label>
+                <input type="text" id="inpUrl" class="form-input" placeholder="https://...">
+                <small style="color:#999; font-size:0.7rem;">*Upload foto ke Imgur/Google Photos, lalu copy link gambarnya.</small>
+            </div>
+            <div class="form-group">
+                <input type="text" id="inpCap" class="form-input" placeholder="Caption / Cerita Singkat">
+            </div>
+            <div class="form-group">
+                <input type="date" id="inpDate" class="form-input">
+            </div>
+            <button class="btn-save" onclick="savePhoto()">Upload Kenangan</button>
+            <div style="text-align:center; margin-top:15px; cursor:pointer; color:#888;" onclick="closeAllModals()">Batal</div>
+        </div>
+    </div>
+
+    <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+        <div class="lb-close">&times;</div>
+        <img src="" class="lb-img" id="lbImg">
+        <div class="lb-caption" id="lbCap"></div>
+    </div>
+
+    <script>
+        // --- 1. FIREBASE CONFIG ---
+        const firebaseConfig = {
+            // !!! PENTING: Paste Config Firebase kamu di sini (Sama dengan peta.html) !!!
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            projectId: "YOUR_PROJECT",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "...",
+            appId: "..."
+        };
+
+        try { firebase.initializeApp(firebaseConfig); } catch(e){}
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // --- 2. LOGIC LOAD DATA ---
+        const grid = document.getElementById('galleryGrid');
+        
+        db.collection('gallery').orderBy('date', 'desc').onSnapshot(snapshot => {
+            grid.innerHTML = ''; 
+            if(snapshot.empty){
+                grid.innerHTML = '<p style="text-align:center; width:100%;">Belum ada foto.</p>';
+                return;
+            }
+
+            let index = 0;
+            snapshot.forEach(doc => {
+                const d = doc.data();
+                const id = doc.id;
+                index++;
+
+                const item = document.createElement('div');
+                item.className = 'gallery-item';
+                item.style.animationDelay = `${index * 0.1}s`; 
+                item.innerHTML = `
+                    <button class="btn-delete" onclick="deletePhoto('${id}', event)"><i class="fa-solid fa-trash"></i></button>
+                    <img src="${d.url}" class="g-img" loading="lazy" onerror="this.src='https://via.placeholder.com/300?text=Error+Link'">
+                    <div class="g-overlay" onclick="openLightbox('${d.url}', '${d.caption}')">
+                        <div class="g-caption">${d.caption}</div>
+                        <div class="g-date"><i class="fa-regular fa-calendar"></i> ${d.date}</div>
+                    </div>
+                `;
+                grid.appendChild(item);
+            });
+            checkAdmin(); 
+        });
+
+        // --- 3. AUTH LOGIC (LOGIN/LOGOUT) ---
+        const btnLogin = document.getElementById('btnLogin');
+        const btnAdd = document.getElementById('btnAdd');
+
+        auth.onAuthStateChanged(user => {
+            checkAdmin();
+            if(user) {
+                btnLogin.innerText = "LOGOUT";
+                btnLogin.onclick = () => auth.signOut();
+            } else {
+                btnLogin.innerText = "LOGIN";
+                btnLogin.onclick = toggleLoginModal;
+            }
+        });
+
+        function checkAdmin() {
+            const user = auth.currentUser;
+            const btnsDel = document.querySelectorAll('.btn-delete');
+            if(user) {
+                if(btnAdd) btnAdd.style.display = 'flex';
+                btnsDel.forEach(b => b.style.display = 'flex');
+            } else {
+                if(btnAdd) btnAdd.style.display = 'none';
+                btnsDel.forEach(b => b.style.display = 'none');
+            }
+        }
+
+        function toggleLoginModal() { document.getElementById('modalLogin').classList.add('active'); }
+        
+        function doLogin() {
+            const e = document.getElementById('email').value;
+            const p = document.getElementById('pass').value;
+            auth.signInWithEmailAndPassword(e, p).then(() => {
+                closeAllModals();
+            }).catch(err => alert("Login Gagal: " + err.message));
+        }
+
+        // --- 4. ADD & DELETE ---
+        function openModalAdd() {
+            document.getElementById('modalAdd').classList.add('active');
+            document.getElementById('inpDate').value = new Date().toISOString().split('T')[0];
+        }
+        function closeAllModals() {
+            document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+        }
+
+        function savePhoto() {
+            const url = document.getElementById('inpUrl').value;
+            const cap = document.getElementById('inpCap').value;
+            const date = document.getElementById('inpDate').value;
+
+            if(!url || !cap) return alert("Link Foto dan Caption wajib diisi!");
+
+            db.collection('gallery').add({
+                url: url, caption: cap, date: date,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                alert("Foto Berhasil Ditambah! ❤️");
+                closeAllModals();
+                document.getElementById('inpUrl').value = '';
+                document.getElementById('inpCap').value = '';
+            }).catch(e => alert(e.message));
+        }
+
+        function deletePhoto(id, event) {
+            event.stopPropagation();
+            if(confirm("Hapus foto ini selamanya?")) {
+                db.collection('gallery').doc(id).delete();
+            }
+        }
+
+        // --- 5. LIGHTBOX ---
+        const lb = document.getElementById('lightbox');
+        const lbImg = document.getElementById('lbImg');
+        const lbCap = document.getElementById('lbCap');
+
+        function openLightbox(url, cap) {
+            lbImg.src = url;
+            lbCap.innerText = cap;
+            lb.classList.add('active');
+        }
+        function closeLightbox() {
+            lb.classList.remove('active');
+            setTimeout(() => lbImg.src = '', 300);
+        }
+    </script>
+</body>
+</html>

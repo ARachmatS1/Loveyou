@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Royal Love Map | Rachmat & Dini</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Jost:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <style>
+        /* =========================================
+           1. THEME VARIABLES (MATCHING "MAGNUM OPUS")
+           ========================================= */
+        :root {
+            --primary: #d81b60;
+            --primary-dark: #ad1457;
+            --accent: #FFD700;
+            --bg-pink: #fce4ec;
+            --glass: rgba(255, 255, 255, 0.85); /* Lebih transparan */
+            --shadow: 0 10px 30px rgba(216, 27, 96, 0.15);
+            --header-h: 90px; /* Header sedikit lebih tinggi */
+            --sidebar-w: 400px;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        
+        body { 
+            font-family: 'Jost', sans-serif; 
+            height: 100vh; overflow: hidden; 
+            background: linear-gradient(135deg, #fff0f6 0%, #ffcdd2 100%);
+            display: flex; flex-direction: column;
+            color: #444;
+        }
+
+        /* === HEADER BARU (JUDUL TENGAH) === */
+        .app-header {
+            height: var(--header-h); 
+            background: var(--glass); backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.5);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 30px; z-index: 2000; 
+            box-shadow: 0 5px 20px rgba(0,0,0,0.03);
+            flex-shrink: 0; position: relative;
+        }
+
+        /* Tiga Bagian Header untuk Penataan */
+        .header-left, .header-right { flex: 1; display: flex; }
+        .header-right { justify-content: flex-end; }
+        .header-center { flex: 2; text-align: center; }
+
+        .home-btn {
+            text-decoration: none; color: var(--primary); font-weight: 600; font-size: 0.9rem;
+            display: flex; align-items: center; gap: 8px; transition: 0.3s;
+            padding: 8px 15px; border-radius: 50px; background: rgba(216,27,96,0.05);
+        }
+        .home-btn:hover { background: var(--primary); color: white; }
+
+        .brand h1 { 
+            font-family: 'Great Vibes', cursive; font-size: 2.8rem; color: var(--primary);
+            line-height: 0.8; text-shadow: 2px 2px 2px rgba(0,0,0,0.05); margin: 0;
+        }
+        .brand span { 
+            font-family: 'Playfair Display', serif; font-size: 0.7rem; color: #888; 
+            letter-spacing: 3px; text-transform: uppercase; font-weight: 700; 
+            display: block; margin-top: 8px;
+        }
+
+        .auth-btn {
+            padding: 8px 25px; border-radius: 50px;
+            background-color: white; border: 2px solid var(--primary);
+            color: var(--primary); font-family: 'Jost', sans-serif;
+            font-weight: 700; font-size: 0.75rem; text-transform: uppercase;
+            letter-spacing: 1px; cursor: pointer; transition: all 0.3s ease;
+        }
+        .auth-btn:hover { background-color: var(--primary); color: white; box-shadow: 0 5px 15px rgba(216, 27, 96, 0.3); }
+
+        /* LAYOUT */
+        .main-container { display: flex; flex: 1; height: calc(100vh - var(--header-h)); position: relative; z-index: 1; }
+
+        /* MAP AREA */
+        .map-wrapper { flex: 1; position: relative; z-index: 1; min-width: 0; }
+        #map { width: 100%; height: 100%; z-index: 1; }
+
+        /* === KUSTOMISASI TOMBOL PETA (AGAR BULAT & PINK) === */
+        /* Override style bawaan Leaflet dengan !important */
+        .leaflet-bar { border: none !important; }
+        .leaflet-bar a { 
+            background: white !important; color: var(--primary) !important; 
+            border-radius: 50% !important; width: 45px !important; height: 45px !important; line-height: 45px !important;
+            box-shadow: 0 5px 15px rgba(216, 27, 96, 0.2) !important; border: none !important; margin-bottom: 15px !important;
+            font-weight: bold !important; font-size: 1.2rem !important; transition: 0.3s;
+        }
+        .leaflet-bar a:hover { background: var(--primary) !important; color: white !important; }
+        
+        .leaflet-control-layers { 
+            border-radius: 15px !important; border: none !important; 
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1) !important; font-family: 'Jost' !important; padding: 10px !important;
+            background: rgba(255, 255, 255, 0.9) !important; backdrop-filter: blur(5px);
+        }
+
+        /* === SIDEBAR BARU (GLASSMORPHISM) === */
+        .sidebar {
+            width: var(--sidebar-w); min-width: var(--sidebar-w);
+            /* Efek Kaca */
+            background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(255,255,255,0.5);
+            display: flex; flex-direction: column;
+            z-index: 1000; box-shadow: -10px 0 30px rgba(0,0,0,0.05); flex-shrink: 0;
+        }
+
+        /* SIDEBAR HEADER */
+        .sidebar-header {
+            padding: 30px 25px; text-align: center;
+            border-bottom: 1px solid rgba(216, 27, 96, 0.1); flex-shrink: 0;
+        }
+        
+        .love-badge {
+            display: inline-flex; flex-direction: column; align-items: center;
+            background: white; padding: 15px 30px; border-radius: 20px;
+            box-shadow: var(--shadow); border: 2px solid var(--accent);
+            margin-bottom: 20px;
+        }
+        .love-badge i { font-size: 2rem; color: var(--primary); animation: beat 1.5s infinite; margin-bottom: 5px; }
+        .days-num { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 700; color: var(--primary-dark); line-height: 1; }
+        .days-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; color: #888; }
+        @keyframes beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.3); } }
+
+        .quote-box { font-size: 0.95rem; line-height: 1.6; color: #555; font-style: italic; font-family: 'Playfair Display'; }
+
+        /* TABS */
+        .tabs { display: flex; padding: 15px 25px 0; gap: 15px; flex-shrink: 0; }
+        .tab-btn {
+            flex: 1; padding: 12px; text-align: center; cursor: pointer;
+            font-weight: 600; font-size: 0.9rem; color: #999;
+            transition: 0.3s; border-radius: 10px;
+            font-family: 'Jost', sans-serif; letter-spacing: 1px; background: rgba(255,255,255,0.5);
+        }
+        .tab-btn.active { color: white; background: var(--primary); box-shadow: 0 5px 15px rgba(216, 27, 96, 0.3); }
+
+        /* CONTENT LIST */
+        .sidebar-content { flex: 1; overflow-y: auto; padding: 25px; background: transparent; position: relative; }
+        .tab-panel { display: none; animation: fadeIn 0.4s; }
+        .tab-panel.active { display: block; }
+        @keyframes fadeIn { from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)} }
+
+        /* STORY CARDS (MODERN LOOK) */
+        .story-card {
+            background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02);
+            position: relative; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); cursor: pointer; overflow: hidden;
+            border-left: 5px solid var(--primary); /* Indikator Warna Kiri */
+        }
+        .story-card:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 20px 40px rgba(216, 27, 96, 0.15); }
+        
+        .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .card-title { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 1.3rem; color: var(--primary-dark); }
+        .card-date { font-size: 0.75rem; color: #999; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; display: block; margin-bottom: 12px;}
+        .card-desc { font-size: 0.95rem; color: #555; line-height: 1.6; }
+        .card-icon-top { font-size: 1.2rem; opacity: 0.8; }
+
+        /* FILTER BUTTONS */
+        .layer-item {
+            display: flex; align-items: center; padding: 15px; background: white;
+            border-radius: 15px; margin-bottom: 12px; cursor: pointer; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.03); transition: 0.2s; border: 2px solid transparent;
+        }
+        .layer-item:hover { transform:translateX(5px); border-color: var(--primary-dark); }
+        .layer-item.active { background: #fff0f6; border-color: var(--primary); }
+        .layer-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 1.1rem; color: white; box-shadow: 0 5px 10px rgba(0,0,0,0.1); }
+        
+        /* MUSIC WIDGET (GLASS) */
+        .music-widget {
+            position: absolute; bottom: 30px; left: 30px; z-index: 1000;
+            display: flex; align-items: center; gap: 15px;
+            background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px);
+            padding: 10px 20px; border-radius: 50px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid white; cursor: pointer; transition: 0.3s;
+        }
+        .music-widget:hover { transform: scale(1.05); background: white; }
+        .music-icon {
+            width: 40px; height: 40px; background: var(--primary); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; color: white;
+            animation: pulse 2s infinite;
+        }
+        .equalizer { display: flex; gap: 3px; height: 20px; align-items: flex-end; }
+        .bar { width: 3px; background: var(--primary); animation: equalize 1s infinite alternate; }
+        .bar:nth-child(2) { animation-delay: 0.2s; } .bar:nth-child(3) { animation-delay: 0.4s; }
+
+        /* FLOATING ACTION BUTTON */
+        .fab {
+            position: absolute; bottom: 30px; right: 30px;
+            width: 65px; height: 65px; border-radius: 50%;
+            background: var(--primary); color: white;
+            font-size: 1.5rem; border: none; cursor: pointer;
+            box-shadow: 0 10px 25px rgba(216, 27, 96, 0.4); z-index: 1000;
+            display: none; align-items: center; justify-content: center;
+            transition: 0.3s;
+        }
+        .fab:hover { transform: scale(1.1) rotate(90deg); background: var(--primary-dark); }
+
+        /* MODALS */
+        .modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px);
+            z-index: 3000; display: none; align-items: center; justify-content: center;
+        }
+        .modal.active { display: flex; animation: popup 0.4s; }
+        
+        .modal-box {
+            background: white; padding: 40px; width: 90%; max-width: 450px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.2); border-radius: 25px; border-top: 5px solid var(--primary);
+        }
+        .modal-title { font-family: 'Great Vibes', cursive; text-align: center; font-size: 2.5rem; color: var(--primary); margin-bottom: 20px; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-label { font-size: 0.8rem; font-weight: 600; color: #666; display: block; margin-bottom: 5px; letter-spacing: 1px; }
+        .form-input { 
+            width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; 
+            font-family: 'Jost'; background: #fdfdfd; transition: 0.3s;
+        }
+        .form-input:focus { border-color: var(--primary); outline: none; background: white; box-shadow: 0 0 0 3px rgba(216, 27, 96, 0.1); }
+        .btn-save { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 50px; font-weight: 700; cursor: pointer; transition: 0.3s; margin-top: 10px; letter-spacing: 1px; }
+        .btn-save:hover { background: var(--primary-dark); transform: translateY(-2px); box-shadow: 0 10px 20px rgba(216, 27, 96, 0.2); }
+
+        /* ADMIN CONTROLS */
+        .admin-controls { display: none; justify-content: flex-end; gap: 10px; margin-top: 15px; padding-top: 10px; border-top: 1px dashed #eee; }
+        body.is-admin .admin-controls, body.is-admin .fab { display: flex; }
+        .btn-mini { padding: 6px 15px; border-radius: 20px; border:none; cursor: pointer; font-size: 0.75rem; color: white; font-weight: 600; letter-spacing: 0.5px; transition: 0.2s; }
+        .btn-mini:hover { transform: translateY(-2px); }
+        .btn-edit { background: var(--accent); color: #5d4037; }
+        .btn-del { background: #ff6b6b; }
+
+        @keyframes pulse { 0% {box-shadow: 0 0 0 0 rgba(216, 27, 96, 0.7);} 70% {box-shadow: 0 0 0 10px transparent;} 100% {box-shadow: 0 0 0 0 transparent;} }
+        @keyframes equalize { 0% {height: 5px;} 100% {height: 20px;} }
+        @keyframes popup { from{transform:scale(0.8); opacity:0;} to{transform:scale(1); opacity:1;} }
+
+        @media (max-width: 768px) {
+            .main-container { flex-direction: column-reverse; }
+            /* Sidebar di HP juga glass */
+            .sidebar { width: 100%; height: 55vh; min-width: 100%; border-left: none; border-top: 1px solid rgba(255,255,255,0.5); background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(15px); }
+            .map-wrapper { height: 45vh; flex: none; }
+            .fab { bottom: 20px; right: 20px; width: 55px; height: 55px; }
+            .music-widget { top: 20px; left: 20px; bottom: auto; transform: scale(0.9); transform-origin: top left; }
+            .music-text { display: none; }
+            .brand h1 { font-size: 1.8rem; } .brand span { font-size: 0.55rem; }
+            .home-btn span { display: none; } /* Sembunyikan teks "Kembali" di HP */
+        }
+    </style>
+</head>
+<body id="appBody">
+
+    <header class="app-header">
+        <div class="header-left">
+            <a href="index.html" class="home-btn"><i class="fa-solid fa-arrow-left"></i> <span>Kembali</span></a>
+        </div>
+        <div class="header-center">
+            <div class="brand">
+                <h1>Our Map</h1>
+                <span>Di setiap tempat ini ada kisah kita</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="auth-btn" id="btnAuth" onclick="toggleLogin()">LOGIN</button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <div class="map-wrapper">
+            <div id="map"></div>
+            
+            <div class="music-widget" onclick="toggleMusic()">
+                <div class="music-icon"><i class="fa-solid fa-music"></i></div>
+                <div class="equalizer"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+                <div class="music-text" style="font-size: 0.85rem; color: var(--primary);">
+                    <b>Yovie & Nuno - Sampai Akhir Waktu</b><br><span style="font-size:0.75rem; color:#666;">Klik untuk memutar</span>
+                </div>
+            </div>
+            <audio id="bgMusic" loop autoplay><source src="assets/music/peta.mp3" type="audio/mp3"></audio>
+
+            <button class="fab" onclick="startAddProcess()"><i class="fa-solid fa-plus"></i></button>
+        </div>
+
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="love-badge">
+                    <i class="fa-solid fa-heart"></i>
+                    <span class="days-num" id="daysCount">0</span>
+                    <span class="days-label">Hari Bersama</span>
+                </div>
+                <div class="quote-box">
+                    "Setiap titik di peta ini adalah jejak langkah kaki kita, bukti nyata bahwa dunia menjadi lebih indah saat dijelajahi berdua."
+                </div>
+            </div>
+            
+            <div class="tabs">
+                <div class="tab-btn active" onclick="switchTab('journal')">Jurnal</div>
+                <div class="tab-btn" onclick="switchTab('layers')">Filter</div>
+            </div>
+            
+            <div class="sidebar-content">
+                <div id="tab-journal" class="tab-panel active">
+                    <div id="storyList">
+                        <div style="text-align:center; margin-top:50px; color:#aaa;">
+                            <i class="fa-solid fa-circle-notch fa-spin"></i> Memuat Kenangan...
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-layers" class="tab-panel">
+                    <div id="layerControls"></div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <div class="modal" id="modalLogin">
+        <div class="modal-box">
+            <h2 class="modal-title">Admin Access</h2>
+            <div class="form-group"><label class="form-label">Email</label><input type="email" id="email" class="form-input"></div>
+            <div class="form-group"><label class="form-label">Password</label><input type="password" id="pass" class="form-input"></div>
+            <button class="btn-save" onclick="doLogin()">Masuk</button>
+            <div style="text-align:center; margin-top:15px; font-size:0.8rem; cursor:pointer; color:#999" onclick="closeModals()">Batal</div>
+        </div>
+    </div>
+
+    <div class="modal" id="modalData">
+        <div class="modal-box">
+            <h2 class="modal-title" id="formTitle">Add Memory</h2>
+            <input type="hidden" id="docId">
+            <div class="form-group"><label class="form-label">Judul Tempat</label><input type="text" id="inpTitle" class="form-input"></div>
+            <div class="form-group" style="display:flex; gap:10px">
+                <div style="flex:1"><label class="form-label">Tanggal</label><input type="date" id="inpDate" class="form-input"></div>
+                <div style="flex:1">
+                    <label class="form-label">Kategori</label>
+                    <select id="inpCat" class="form-input">
+                        <option value="history">Sejarah (Pink)</option>
+                        <option value="food">Kuliner (Oren)</option>
+                        <option value="date">Date (Ungu)</option>
+                        <option value="dream">Impian (Emas)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group"><label class="form-label">Cerita Singkat</label><textarea id="inpDesc" class="form-input" rows="3"></textarea></div>
+            <div class="form-group"><label class="form-label">Lokasi</label>
+                <div style="display:flex; gap:5px"><input type="text" id="inpLat" class="form-input" readonly><input type="text" id="inpLng" class="form-input" readonly></div>
+            </div>
+            <button class="btn-save" onclick="saveData()">Simpan Kenangan</button>
+            <div style="text-align:center; margin-top:15px; font-size:0.8rem; cursor:pointer; color:#999" onclick="closeModals()">Batal</div>
+        </div>
+    </div>
+
+<script>
+    // --- 1. FIREBASE CONFIG ---
+    // !!! PASTE CONFIG FIREBASE KAMU DI SINI !!!
+        const firebaseConfig = {
+            apiKey: "AIzaSyC64-tVQSGInI95H4Y763PFsc7A0zz_Df4",
+            authDomain: "weblove-95a42.firebaseapp.com",
+            projectId: "weblove-95a42",
+            storageBucket: "weblove-95a42.firebasestorage.app",
+            messagingSenderId: "270037244406",
+            appId: "1:270037244406:web:c284cd60efc8cdd8874fd7",
+            measurementId: "G-60WCCK5B2L"
+    };
+
+    try { firebase.initializeApp(firebaseConfig); } catch(e){ console.log("Config Error"); }
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    // --- 2. MAP SETUP ---
+    const cartoLight = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: 'Map data &copy; OpenStreetMap' });
+    const cartoDark  = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: 'Dark' });
+    const googleSat  = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Satellite' });
+
+    const map = L.map('map', { zoomControl: false, layers: [cartoLight] }).setView([-7.275, 112.75], 13);
+    L.control.layers({ "Light": cartoLight, "Night": cartoDark, "Satellite": googleSat }, null, { position: 'topright' }).addTo(map);
+    L.control.zoom({ position: 'topright' }).addTo(map);
+
+    let layerGroups = {
+        history: L.layerGroup().addTo(map),
+        food: L.layerGroup().addTo(map),
+        date: L.layerGroup().addTo(map),
+        dream: L.layerGroup().addTo(map)
+    };
+    let tempMarker = null;
+    let isAddingMode = false;
+
+    // --- 3. LOGIC ---
+    // Music Widget
+    const music = document.getElementById('bgMusic');
+    let isPlaying = false;
+    function toggleMusic() {
+        if(isPlaying) {
+            music.pause();
+            document.querySelectorAll('.bar').forEach(b => b.style.animation = 'none');
+        } else {
+            music.play().catch(e=>alert("Klik layar dulu!"));
+            document.querySelectorAll('.bar').forEach(b => b.style.animation = 'equalize 1s infinite alternate');
+        }
+        isPlaying = !isPlaying;
+    }
+
+    // Add Memory
+    function startAddProcess() {
+        isAddingMode = true;
+        alert("Silakan KLIK titik lokasi di peta.");
+        document.getElementById('map').style.cursor = "crosshair";
+    }
+
+    map.on('click', (e) => {
+        if(isAddingMode) {
+            if(tempMarker) map.removeLayer(tempMarker);
+            tempMarker = L.marker(e.latlng).addTo(map);
+            openModal('add');
+            document.getElementById('inpLat').value = e.latlng.lat;
+            document.getElementById('inpLng').value = e.latlng.lng;
+            isAddingMode = false; document.getElementById('map').style.cursor = "";
+        }
+    });
+
+    // Auth
+    auth.onAuthStateChanged(user => {
+        const b = document.getElementById('appBody');
+        const btn = document.getElementById('btnAuth');
+        if(user) {
+            b.classList.add('is-admin');
+            btn.innerText = "LOGOUT";
+            btn.onclick = () => auth.signOut();
+        } else {
+            b.classList.remove('is-admin');
+            btn.innerText = "LOGIN";
+            btn.onclick = toggleLogin;
+        }
+    });
+
+    function toggleLogin() { document.getElementById('modalLogin').classList.add('active'); }
+    function closeModals() { 
+        document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+        if(tempMarker && !document.getElementById('docId').value) map.removeLayer(tempMarker);
+    }
+    function doLogin() {
+        auth.signInWithEmailAndPassword(document.getElementById('email').value, document.getElementById('pass').value)
+            .then(closeModals).catch(e => alert(e.message));
+    }
+
+    function openModal(mode) {
+        document.getElementById('modalData').classList.add('active');
+        if(mode === 'add') {
+            document.getElementById('formTitle').innerText = "New Memory";
+            document.getElementById('docId').value = "";
+            document.getElementById('inpTitle').value = "";
+            document.getElementById('inpDesc').value = "";
+            document.getElementById('inpDate').value = new Date().toISOString().split('T')[0];
+        }
+    }
+
+    // Read Data
+    const catsStyle = {
+        history: { col: '#D81B60', ico: 'fa-heart', label: 'Sejarah Kita' },
+        food: { col: '#F57C00', ico: 'fa-utensils', label: 'Kulineran' },
+        date: { col: '#8E24AA', ico: 'fa-ticket', label: 'Jalan-Jalan' },
+        dream: { col: '#FFD700', ico: 'fa-star', label: 'Impian' }
+    };
+
+    // Render Filters
+    const layerBox = document.getElementById('layerControls');
+    Object.keys(catsStyle).forEach(key => {
+        const s = catsStyle[key];
+        const div = document.createElement('div');
+        div.className = 'layer-item active';
+        div.innerHTML = `<div class="layer-icon" style="background:${s.col}"><i class="fa-solid ${s.ico}"></i></div> <b>${s.label}</b>`;
+        div.onclick = () => {
+            div.classList.toggle('active');
+            if(map.hasLayer(layerGroups[key])) map.removeLayer(layerGroups[key]);
+            else map.addLayer(layerGroups[key]);
+        };
+        layerBox.appendChild(div);
+    });
+
+    db.collection('memories').orderBy('date', 'desc').onSnapshot(snap => {
+        Object.values(layerGroups).forEach(l => l.clearLayers());
+        const list = document.getElementById('storyList');
+        list.innerHTML = '';
+
+        if(snap.empty) list.innerHTML = '<div style="text-align:center;margin-top:20px;color:#999">Belum ada kenangan.</div>';
+
+        snap.forEach(doc => {
+            const d = doc.data();
+            const id = doc.id;
+            const s = catsStyle[d.category] || catsStyle.history;
+
+            // Marker Custom (Lebih Besar Sedikit)
+            const iconHtml = `<div style="background:${s.col}; width:32px; height:32px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); display:flex; justify-content:center; align-items:center; border:2px solid white; box-shadow:0 3px 8px rgba(0,0,0,0.4);">
+                <i class="fa-solid ${s.ico}" style="transform:rotate(45deg); color:white; font-size:0.9rem"></i>
+            </div>`;
+            const marker = L.marker([d.lat, d.lng], {
+                icon: L.divIcon({ className:'', html:iconHtml, iconSize:[32,32], iconAnchor:[16,32], popupAnchor:[0,-32] })
+            });
+            marker.bindPopup(`<b style="font-family:'Playfair Display'; font-size:1.1rem; color:${s.col}">${d.title}</b><br><span style="font-size:0.8rem; color:#666">${d.date}</span><br>${d.desc}`);
+            if(layerGroups[d.category]) layerGroups[d.category].addLayer(marker);
+
+            // Story Card (Modern Glassy Look)
+            const card = document.createElement('div');
+            card.className = 'story-card';
+            card.style.borderLeftColor = s.col;
+            card.innerHTML = `
+                <div class="card-head">
+                    <div class="card-title">${d.title}</div>
+                    <i class="fa-solid ${s.ico} card-icon-top" style="color:${s.col}"></i>
+                </div>
+                <span class="card-date">${d.date}</span>
+                <div class="card-desc">${d.desc}</div>
+                <div class="admin-controls">
+                    <button class="btn-mini btn-edit" onclick="prepareEdit('${id}','${d.title}','${d.date}','${d.category}','${d.desc}',${d.lat},${d.lng})">EDIT</button>
+                    <button class="btn-mini btn-del" onclick="deleteData('${id}')">DELETE</button>
+                </div>
+            `;
+            card.onclick = (e) => {
+                if(!e.target.closest('.admin-controls')) {
+                    if(!map.hasLayer(layerGroups[d.category])) map.addLayer(layerGroups[d.category]);
+                    map.flyTo([d.lat, d.lng], 16);
+                    marker.openPopup();
+                }
+            };
+            list.appendChild(card);
+        });
+    });
+
+    window.prepareEdit = (id, t, d, c, desc, lat, lng) => {
+        document.getElementById('modalData').classList.add('active');
+        document.getElementById('formTitle').innerText = "Edit Memory";
+        document.getElementById('docId').value = id;
+        document.getElementById('inpTitle').value = t;
+        document.getElementById('inpDate').value = d;
+        document.getElementById('inpCat').value = c;
+        document.getElementById('inpDesc').value = desc;
+        document.getElementById('inpLat').value = lat;
+        document.getElementById('inpLng').value = lng;
+        if(tempMarker) map.removeLayer(tempMarker);
+        tempMarker = L.marker([lat, lng]).addTo(map);
+    };
+
+    function saveData() {
+        const id = document.getElementById('docId').value;
+        const data = {
+            title: document.getElementById('inpTitle').value,
+            date: document.getElementById('inpDate').value,
+            category: document.getElementById('inpCat').value,
+            desc: document.getElementById('inpDesc').value,
+            lat: parseFloat(document.getElementById('inpLat').value),
+            lng: parseFloat(document.getElementById('inpLng').value)
+        };
+        if(!data.lat) return alert("Location missing!");
+        
+        const action = id ? db.collection('memories').doc(id).update(data) : db.collection('memories').add(data);
+        action.then(closeModals);
+    }
+
+    window.deleteData = (id) => { if(confirm("Hapus kenangan ini?")) db.collection('memories').doc(id).delete(); }
+
+    window.switchTab = (tab) => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        if(tab === 'journal') {
+            document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+            document.getElementById('tab-journal').classList.add('active');
+        } else {
+            document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+            document.getElementById('tab-layers').classList.add('active');
+        }
+    };
+
+    // Days Counter
+    const start = new Date("2025-06-17"); 
+    const diff = Math.floor((new Date() - start) / (1000 * 60 * 60 * 24));
+    document.getElementById('daysCount').innerText = diff;
+    // --- SCRIPT AUTO-PLAY (TRIK SENTUHAN PERTAMA) ---
+        // Browser memblokir autoplay murni, jadi kita pancing dengan klik pertama
+        document.addEventListener('click', function() {
+            const music = document.getElementById('bgMusic');
+            // Cek apakah musik sedang pause? Kalau iya, nyalakan!
+            if (music.paused) {
+                music.play().then(() => {
+                    // Nyalakan animasi bar equalizer
+                    document.querySelectorAll('.bar').forEach(b => b.style.animation = 'equalize 1s infinite alternate');
+                    isPlaying = true;
+                }).catch(e => console.log("Menunggu interaksi user..."));
+            }
+        }, { once: true }); // {once:true} artinya cuma jalan sekali aja pas klik pertama
+
+</script>
+</body>
+</html>
