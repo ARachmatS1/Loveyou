@@ -298,7 +298,7 @@
         }
 
         function toggleDone(id, status) {
-            if (!auth.currentUser) { alert("Eits! Hanya Admin yang boleh coret 😜"); return; }
+            if (!auth.currentUser) { alert("Eits! Hanya Rachmat dan Dini yang boleh coret 😜"); return; }
             db.collection('bucketlist').doc(id).update({ isDone: !status });
         }
         function deleteDream(id) { if(confirm("Hapus?")) db.collection('bucketlist').doc(id).delete(); }
