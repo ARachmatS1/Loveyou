@@ -74,7 +74,7 @@
             font-size: 0.85rem; font-weight: 700; color: #444; text-shadow: 0 0 10px white;
         }
 
-        /* --- FITUR FILTER BARU --- */
+        /* FILTER BUTTONS */
         .filter-container {
             display: flex; gap: 8px; justify-content: center; margin-bottom: 25px; flex-wrap: wrap;
         }
@@ -100,7 +100,7 @@
         .btn-add { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: 700; width: 100%; transition: 0.2s; }
         .btn-add:hover { background: #ad1457; }
 
-        /* LIST ITEMS */
+        /* LIST ITEMS & COLORS */
         .bucket-item {
             background: var(--glass); padding: 15px 20px; border-radius: 15px;
             margin-bottom: 15px; display: flex; align-items: center; gap: 15px;
@@ -110,9 +110,11 @@
         }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        .bucket-item.cat-travel { border-left-color: #29b6f6; }
-        .bucket-item.cat-food { border-left-color: #ff9800; }
-        .bucket-item.cat-memory { border-left-color: #e91e63; }
+        /* WARNA KATEGORI */
+        .bucket-item.cat-travel { border-left-color: #29b6f6; } /* Biru */
+        .bucket-item.cat-food { border-left-color: #ff9800; }   /* Orange */
+        .bucket-item.cat-memory { border-left-color: #e91e63; } /* Pink */
+        .bucket-item.cat-cafe { border-left-color: #795548; }   /* Cokelat Kopi */
 
         .bucket-item.done { background: #fffcf0; opacity: 0.8; }
         .bucket-item.done .item-title { text-decoration: line-through; color: #aaa; }
@@ -123,8 +125,12 @@
 
         .item-content { flex: 1; }
         .item-title { font-size: 1.1rem; font-family: 'Playfair Display', serif; font-weight: 600; }
+        
         .item-tag { font-size: 0.7rem; display: inline-block; padding: 2px 8px; border-radius: 4px; margin-top: 5px; color: white; font-weight: 600; letter-spacing: 0.5px; }
-        .tag-travel { background: #29b6f6; } .tag-food { background: #ff9800; } .tag-memory { background: #e91e63; }
+        .tag-travel { background: #29b6f6; }
+        .tag-food { background: #ff9800; }
+        .tag-memory { background: #e91e63; }
+        .tag-cafe { background: #795548; } /* Warna Tag Cafe */
 
         .del-btn { color: #ff6b6b; cursor: pointer; opacity: 0.5; background: none; border: none; display: none; font-size: 1rem; }
         .del-btn:hover { opacity: 1; transform: scale(1.1); }
@@ -167,6 +173,7 @@
             <button class="filter-btn btn-all active" onclick="setFilter('all')">Semua</button>
             <button class="filter-btn btn-travel" onclick="setFilter('travel')">✈️ Main</button>
             <button class="filter-btn btn-food" onclick="setFilter('food')">🍽️ Kuliner</button>
+            <button class="filter-btn btn-cafe" onclick="setFilter('cafe')">☕ Cafe</button>
             <button class="filter-btn btn-memory" onclick="setFilter('memory')">❤️ Sejarah</button>
         </div>
 
@@ -176,7 +183,7 @@
                 <select id="inpCat" class="inp-select">
                     <option value="travel">✈️ Jalan-jalan</option>
                     <option value="food">🍽️ Kuliner</option>
-                    <option value="memory">❤️ Sejarah</option>
+                    <option value="cafe">☕ Ngafe</option> <option value="memory">❤️ Kenangan</option>
                 </select>
             </div>
             <button class="btn-add" onclick="addDream()">TAMBAH KE LIST</button>
@@ -226,38 +233,30 @@
         let allDreams = [];
         let currentFilter = 'all';
 
-        // Load Data sekali, simpan di variable allDreams
         db.collection('bucketlist').orderBy('created', 'desc').onSnapshot(snap => {
             allDreams = [];
             snap.forEach(doc => {
                 allDreams.push({ id: doc.id, ...doc.data() });
             });
-            renderList(); // Tampilkan data
+            renderList();
         });
 
-        // Fungsi Filter
         function setFilter(cat) {
             currentFilter = cat;
-            
-            // Ubah warna tombol aktif
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelector(`.btn-${cat}`).classList.add('active');
-            
             renderList();
         }
 
-        // Fungsi Render (Menampilkan Data ke Layar)
         function renderList() {
             const listDiv = document.getElementById('dreamList');
             listDiv.innerHTML = '';
 
-            // 1. Filter data sesuai tombol yang diklik
             const filteredData = allDreams.filter(d => {
                 if (currentFilter === 'all') return true;
                 return d.category === currentFilter;
             });
 
-            // 2. Hitung Progress (Berdasarkan data yang tampil saja)
             let total = filteredData.length;
             let done = filteredData.filter(d => d.isDone).length;
             updateProgress(total, done);
@@ -267,13 +266,15 @@
                 return;
             }
 
-            // 3. Buat HTML untuk setiap item
             filteredData.forEach(d => {
                 const item = document.createElement('div');
                 
                 let catClass = 'cat-memory'; let tagName = 'SEJARAH ❤️'; let tagColor = 'tag-memory';
+                
+                // LOGIC WARNA & NAMA TAG
                 if(d.category === 'travel') { catClass='cat-travel'; tagName='MAIN ✈️'; tagColor='tag-travel'; }
                 else if(d.category === 'food') { catClass='cat-food'; tagName='KULINER 🍽️'; tagColor='tag-food'; }
+                else if(d.category === 'cafe') { catClass='cat-cafe'; tagName='NGAFE ☕'; tagColor='tag-cafe'; } // <-- LOGIC CAFE
                 else if(d.category === 'memory') { catClass='cat-memory'; tagName='SEJARAH ❤️'; tagColor='tag-memory'; }
 
                 const iconClass = d.isDone ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle';
