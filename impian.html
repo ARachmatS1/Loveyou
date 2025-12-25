@@ -32,7 +32,7 @@
             min-height: 100vh; color: #444; padding-bottom: 80px;
         }
 
-        /* HEADER (MENGIKUTI GAYA GALERI) */
+        /* HEADER */
         .page-header {
             text-align: center; padding: 40px 20px;
             position: relative; display: flex; flex-direction: column; align-items: center;
@@ -43,15 +43,12 @@
             max-width: 1200px; margin-bottom: 20px; padding: 0 10px; align-items: center;
         }
 
-        /* TOMBOL (GAYA CLEAN SEPERTI GALERI) */
         .nav-btn {
             text-decoration: none; color: var(--primary); font-size: 0.9rem;
             padding: 10px 25px; background: white; border-radius: 50px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.05); font-weight: 600; cursor: pointer; 
-            border: 1px solid transparent; /* Border tipis transparan */
-            transition: 0.3s; display: flex; align-items: center; gap: 8px;
+            border: 1px solid transparent; transition: 0.3s; display: flex; align-items: center; gap: 8px;
         }
-        
         .nav-btn:hover { 
             background: var(--primary); color: white; 
             transform: translateY(-3px); box-shadow: 0 8px 20px rgba(216, 27, 96, 0.2); 
@@ -66,15 +63,29 @@
         /* PROGRESS BAR */
         .progress-wrapper {
             background: white; border-radius: 50px; padding: 5px;
-            box-shadow: var(--shadow); margin-bottom: 30px; position: relative;
+            box-shadow: var(--shadow); margin-bottom: 20px; position: relative;
         }
         .progress-bar {
             height: 25px; background: linear-gradient(to right, #ff80ab, var(--primary));
-            border-radius: 50px; width: 0%; transition: width 1s ease-in-out;
+            border-radius: 50px; width: 0%; transition: width 0.5s ease-in-out;
         }
         .progress-text {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             font-size: 0.85rem; font-weight: 700; color: #444; text-shadow: 0 0 10px white;
+        }
+
+        /* --- FITUR FILTER BARU --- */
+        .filter-container {
+            display: flex; gap: 8px; justify-content: center; margin-bottom: 25px; flex-wrap: wrap;
+        }
+        .filter-btn {
+            padding: 8px 16px; border: 1px solid var(--primary); background: rgba(255,255,255,0.6);
+            color: var(--primary); border-radius: 50px; cursor: pointer; transition: 0.3s;
+            font-family: 'Jost'; font-size: 0.85rem; font-weight: 600;
+        }
+        .filter-btn:hover { background: #ffebee; }
+        .filter-btn.active {
+            background: var(--primary); color: white; box-shadow: 0 5px 15px rgba(216, 27, 96, 0.3);
         }
 
         /* INPUT BOX */
@@ -95,7 +106,9 @@
             margin-bottom: 15px; display: flex; align-items: center; gap: 15px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.03); transition: 0.3s;
             border-left: 5px solid #ddd; position: relative; overflow: hidden;
+            animation: fadeIn 0.5s;
         }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
         .bucket-item.cat-travel { border-left-color: #29b6f6; }
         .bucket-item.cat-food { border-left-color: #ff9800; }
@@ -130,7 +143,6 @@
         .bar:nth-child(2) { animation-delay: 0.2s; } .bar:nth-child(3) { animation-delay: 0.4s; }
 
         @keyframes equalize { 0% {height: 5px;} 100% {height: 20px;} }
-        @keyframes pulse { 0% {box-shadow: 0 0 0 0 rgba(216, 27, 96, 0.7);} 70% {box-shadow: 0 0 0 10px transparent;} 100% {box-shadow: 0 0 0 0 transparent;} }
         @media(max-width: 768px) { .header-top { padding: 0; margin-bottom: 10px;} .title { font-size: 3rem; } .music-text { display: none; } }
     </style>
 </head>
@@ -149,6 +161,13 @@
         <div class="progress-wrapper">
             <div class="progress-bar" id="progressBar"></div>
             <div class="progress-text" id="progressText">0% Terwujud</div>
+        </div>
+
+        <div class="filter-container">
+            <button class="filter-btn btn-all active" onclick="setFilter('all')">Semua</button>
+            <button class="filter-btn btn-travel" onclick="setFilter('travel')">✈️ Main</button>
+            <button class="filter-btn btn-food" onclick="setFilter('food')">🍽️ Kuliner</button>
+            <button class="filter-btn btn-memory" onclick="setFilter('memory')">❤️ Sejarah</button>
         </div>
 
         <div class="input-box" id="inputArea">
@@ -173,9 +192,9 @@
     <div class="music-widget" onclick="toggleMusic()">
         <div class="music-icon"><i class="fa-solid fa-music"></i></div>
         <div class="equalizer"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
-        <div class="music-text" style="font-size: 0.85rem; color: var(--primary);"><b> One Direction - Perfect</b><br><span style="font-size:0.75rem; color:#666;">Klik putar</span></div>
+        <div class="music-text" style="font-size: 0.85rem; color: var(--primary);"><b>One Direction - Perfect</b><br><span style="font-size:0.75rem; color:#666;">Klik putar</span></div>
     </div>
-    <audio id="bgMusic" loop autoplay><source src="assets/music/impian.mp3" type="audio/mp3"></audio>
+    <audio id="bgMusic" loop autoplay><source src="assets/music/peta.mp3" type="audio/mp3"></audio>
 
     <div class="modal" id="modalLogin">
         <div class="modal-box">
@@ -197,39 +216,77 @@
             messagingSenderId: "270037244406",
             appId: "1:270037244406:web:c284cd60efc8cdd8874fd7",
             measurementId: "G-60WCCK5B2L"
-    };
+        };
 
         try { firebase.initializeApp(firebaseConfig); } catch(e){}
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        // --- 2. LOAD DATA ---
-        const listDiv = document.getElementById('dreamList');
-        db.collection('bucketlist').orderBy('created', 'desc').onSnapshot(snap => {
-            listDiv.innerHTML = '';
-            let total = 0; let done = 0;
-            if(snap.empty) { listDiv.innerHTML = '<p style="text-align:center; color:#999">Belum ada impian.</p>'; updateProgress(0,0); return; }
+        // --- 2. LOAD & FILTER LOGIC ---
+        let allDreams = [];
+        let currentFilter = 'all';
 
+        // Load Data sekali, simpan di variable allDreams
+        db.collection('bucketlist').orderBy('created', 'desc').onSnapshot(snap => {
+            allDreams = [];
             snap.forEach(doc => {
-                const d = doc.data(); const id = doc.id; total++; if(d.isDone) done++;
+                allDreams.push({ id: doc.id, ...doc.data() });
+            });
+            renderList(); // Tampilkan data
+        });
+
+        // Fungsi Filter
+        function setFilter(cat) {
+            currentFilter = cat;
+            
+            // Ubah warna tombol aktif
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.btn-${cat}`).classList.add('active');
+            
+            renderList();
+        }
+
+        // Fungsi Render (Menampilkan Data ke Layar)
+        function renderList() {
+            const listDiv = document.getElementById('dreamList');
+            listDiv.innerHTML = '';
+
+            // 1. Filter data sesuai tombol yang diklik
+            const filteredData = allDreams.filter(d => {
+                if (currentFilter === 'all') return true;
+                return d.category === currentFilter;
+            });
+
+            // 2. Hitung Progress (Berdasarkan data yang tampil saja)
+            let total = filteredData.length;
+            let done = filteredData.filter(d => d.isDone).length;
+            updateProgress(total, done);
+
+            if (total === 0) {
+                listDiv.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px">Belum ada impian di kategori ini.</p>';
+                return;
+            }
+
+            // 3. Buat HTML untuk setiap item
+            filteredData.forEach(d => {
                 const item = document.createElement('div');
                 
-                let catClass = 'cat-memory'; let tagName = 'KENANGAN'; let tagColor = 'tag-memory';
-                if(d.category === 'travel') { catClass='cat-travel'; tagName='JALAN-JALAN ✈️'; tagColor='tag-travel'; }
+                let catClass = 'cat-memory'; let tagName = 'SEJARAH ❤️'; let tagColor = 'tag-memory';
+                if(d.category === 'travel') { catClass='cat-travel'; tagName='MAIN ✈️'; tagColor='tag-travel'; }
                 else if(d.category === 'food') { catClass='cat-food'; tagName='KULINER 🍽️'; tagColor='tag-food'; }
-                else if(d.category === 'memory') { catClass='cat-memory'; tagName='KENANGAN ❤️'; tagColor='tag-memory'; }
+                else if(d.category === 'memory') { catClass='cat-memory'; tagName='SEJARAH ❤️'; tagColor='tag-memory'; }
 
                 const iconClass = d.isDone ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle';
                 item.className = `bucket-item ${d.isDone ? 'done' : ''} ${catClass}`;
                 item.innerHTML = `
-                    <button class="check-btn" onclick="toggleDone('${id}', ${d.isDone})"><i class="${iconClass}"></i></button>
+                    <button class="check-btn" onclick="toggleDone('${d.id}', ${d.isDone})"><i class="${iconClass}"></i></button>
                     <div class="item-content"><div class="item-title">${d.title}</div><span class="item-tag ${tagColor}">${tagName}</span></div>
-                    <button class="del-btn" onclick="deleteDream('${id}')"><i class="fa-solid fa-trash"></i></button>
+                    <button class="del-btn" onclick="deleteDream('${d.id}')"><i class="fa-solid fa-trash"></i></button>
                 `;
                 listDiv.appendChild(item);
             });
-            updateProgress(total, done); checkAdmin();
-        });
+            checkAdmin();
+        }
 
         function addDream() {
             const title = document.getElementById('inpDream').value;
@@ -240,10 +297,11 @@
         }
 
         function toggleDone(id, status) {
-            if (!auth.currentUser) { alert("Eits! Hanya Rachmat dan Dini yang boleh coret 😜"); return; }
+            if (!auth.currentUser) { alert("Eits! Hanya Admin yang boleh coret 😜"); return; }
             db.collection('bucketlist').doc(id).update({ isDone: !status });
         }
         function deleteDream(id) { if(confirm("Hapus?")) db.collection('bucketlist').doc(id).delete(); }
+        
         function updateProgress(t, d) {
             const p = t===0 ? 0 : Math.round((d/t)*100);
             document.getElementById('progressBar').style.width = p+'%';
@@ -261,10 +319,9 @@
         function closeModals() { document.getElementById('modalLogin').classList.remove('active'); }
         function doLogin() { auth.signInWithEmailAndPassword(document.getElementById('email').value, document.getElementById('pass').value).then(closeModals).catch(e=>alert(e.message)); }
 
-        const music = document.getElementById('bgMusic'); let isPlaying = false;
-        document.addEventListener('click', ()=>{ if(music.paused){ music.play().then(()=>{isPlaying=true; updateAnim();}); } }, {once:true});
-        function toggleMusic() { if(isPlaying){music.pause();}else{music.play();} isPlaying=!isPlaying; updateAnim(); }
-        function updateAnim() { document.querySelectorAll('.bar').forEach(b => b.style.animation = isPlaying ? 'equalize 1s infinite alternate' : 'none'); }
+        const music = document.getElementById('bgMusic'); 
+        document.addEventListener('click', ()=>{ if(music.paused){ music.play().then(()=>{ document.querySelectorAll('.bar').forEach(b => b.style.animation = 'equalize 1s infinite alternate'); }); } }, {once:true});
+        function toggleMusic() { if(!music.paused){music.pause(); document.querySelectorAll('.bar').forEach(b=>b.style.animation='none');}else{music.play(); document.querySelectorAll('.bar').forEach(b=>b.style.animation='equalize 1s infinite alternate');} }
     </script>
 </body>
 </html>
