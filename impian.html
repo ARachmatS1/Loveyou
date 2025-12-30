@@ -176,7 +176,7 @@
             <button class="filter-btn btn-travel" onclick="setFilter('travel')">✈️ Main</button>
             <button class="filter-btn btn-food" onclick="setFilter('food')">🍽️ Kuliner</button>
             <button class="filter-btn btn-cafe" onclick="setFilter('cafe')">☕ Cafe</button>
-            <button class="filter-btn btn-memory" onclick="setFilter('memory')">❤️ Sejarah</button>
+            <button class="filter-btn btn-memory" onclick="setFilter('memory')">❤️ Momen Hidup</button>
         </div>
 
         <div class="input-box" id="inputArea">
@@ -186,7 +186,7 @@
                     <option value="travel">✈️ Jalan-jalan</option>
                     <option value="food">🍽️ Kuliner</option>
                     <option value="cafe">☕ Ngafe</option>
-                    <option value="memory">❤️ Kenangan</option>
+                    <option value="memory">❤️ Momen Hidup</option>
                 </select>
             </div>
             <button class="btn-add" onclick="addDream()">TAMBAH KE LIST</button>
@@ -204,7 +204,7 @@
         <div class="equalizer"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
         <div class="music-text" style="font-size: 0.85rem; color: var(--primary);"><b>One Direction - Perfect</b><br><span style="font-size:0.75rem; color:#666;">Klik putar</span></div>
     </div>
-    <audio id="bgMusic" loop autoplay><source src="assets/music/peta.mp3" type="audio/mp3"></audio>
+    <audio id="bgMusic" loop autoplay><source src="assets/music/impian.mp3" type="audio/mp3"></audio>
 
     <div class="modal" id="modalLogin">
         <div class="modal-box">
@@ -272,12 +272,12 @@
             filteredData.forEach(d => {
                 const item = document.createElement('div');
                 
-                let catClass = 'cat-memory'; let tagName = 'SEJARAH ❤️'; let tagColor = 'tag-memory';
+                let catClass = 'cat-memory'; let tagName = 'MOMENN HIDUP ❤️'; let tagColor = 'tag-memory';
                 
                 if(d.category === 'travel') { catClass='cat-travel'; tagName='MAIN ✈️'; tagColor='tag-travel'; }
                 else if(d.category === 'food') { catClass='cat-food'; tagName='KULINER 🍽️'; tagColor='tag-food'; }
                 else if(d.category === 'cafe') { catClass='cat-cafe'; tagName='NGAFE ☕'; tagColor='tag-cafe'; }
-                else if(d.category === 'memory') { catClass='cat-memory'; tagName='SEJARAH ❤️'; tagColor='tag-memory'; }
+                else if(d.category === 'memory') { catClass='cat-memory'; tagName='MOMEN HIDUP ❤️'; tagColor='tag-memory'; }
 
                 const iconClass = d.isDone ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle';
                 item.className = `bucket-item ${d.isDone ? 'done' : ''} ${catClass}`;
