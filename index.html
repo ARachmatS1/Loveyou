@@ -538,19 +538,21 @@
             setDynamicGreeting();
             setDailyLoveNote();
             startTypewriter();
-            
-            document.addEventListener('click', () => {
-                if(!isPlaying) {
-                    music.play().then(() => {
-                        document.querySelectorAll('.bar').forEach(b => b.classList.add('playing'));
-                        isPlaying = true;
-                    }).catch(e => {});
-                }
-            }, {once: true});
         }
 
         // 6. MOOD TRACKER LOGIC (Welcome Pop-up)
         function handleMood(mood) {
+            // TAMBAHKAN INI: Langsung putar musik begitu tombol emoji diklik
+            const music = document.getElementById('bgMusic');
+            music.play().then(() => {
+                document.querySelectorAll('.bar').forEach(b => b.classList.add('playing'));
+                isPlaying = true;
+            }).catch(e => {
+                console.log("Autoplay dicegah, akan diputar pada klik berikutnya.");
+            });
+
+            document.getElementById('moodModal').classList.remove('active');
+            sessionStorage.setItem('moodAsked', 'true');
             // Tutup mood modal dan set session agar tidak ditanya berulang kali
             document.getElementById('moodModal').classList.remove('active');
             sessionStorage.setItem('moodAsked', 'true');
