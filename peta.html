@@ -106,7 +106,7 @@
         .leaflet-bar a:hover { background: var(--primary) !important; color: white !important; }
         .leaflet-control-layers { border-radius: 12px !important; border: none !important; box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important; padding: 8px !important; background: rgba(255, 255, 255, 0.95) !important; font-family: 'Jost'; }
 
-        /* CUSTOM GEOCODER TWEAKS (Pencarian Estetik) */
+        /* CUSTOM GEOCODER TWEAKS */
         .leaflet-control-geocoder { border-radius: 25px !important; box-shadow: 0 5px 15px rgba(216, 27, 96, 0.2) !important; overflow: hidden; border: none !important; }
         .leaflet-control-geocoder-icon { width: 40px !important; height: 40px !important; background-color: white !important; border-radius: 25px !important; }
         .leaflet-control-geocoder-expanded { width: 300px !important; padding-right: 10px; }
@@ -119,8 +119,8 @@
         .marker-pin {
             width: 32px; height: 32px; border-radius: 50% 50% 50% 0;
             display: flex; justify-content: center; align-items: center;
-            border: 2px solid white; box-shadow: 0 3px 8px rgba(0,0,0,0.4);
-            animation: floatPin 2s infinite ease-in-out;
+            border: 2px solid white; box-shadow: 0 3px 8px rgba(0, 0, 0, 0);
+            animation: floatPin 4s infinite ease-in-out;
             cursor: pointer;
         }
         @keyframes floatPin {
@@ -203,6 +203,27 @@
         @keyframes equalize { 0% {height: 5px;} 100% {height: 20px;} }
         @keyframes pulse { 0% {box-shadow: 0 0 0 0 rgba(216, 27, 96, 0.7);} 70% {box-shadow: 0 0 0 10px transparent;} 100% {box-shadow: 0 0 0 0 transparent;} }
 
+        /* --- GAYA BARU UNTUK TOMBOL RUTE & DASHBOARD MINI --- */
+        .btn-route {
+            display: inline-block;
+            margin-top: 12px; padding: 6px 15px;
+            background: rgba(216, 27, 96, 0.1); color: var(--primary);
+            border-radius: 20px; text-decoration: none;
+            font-size: 0.8rem; font-weight: 600; transition: 0.3s;
+        }
+        .btn-route:hover { background: var(--primary); color: white; transform: translateY(-2px); }
+
+        .mini-stats {
+            background: linear-gradient(135deg, white, var(--bg-pink));
+            padding: 15px; border-radius: 15px; margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(216, 27, 96, 0.08); border: 1px solid white;
+            display: flex; justify-content: space-around; align-items: center; text-align: center;
+            animation: fadeIn 0.5s;
+        }
+        .stat-box { display: flex; flex-direction: column; }
+        .stat-val { font-size: 1.5rem; font-family: 'Playfair Display', serif; font-weight: 700; color: var(--primary-dark); line-height: 1; margin-bottom: 4px; }
+        .stat-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: #666; font-weight: 600; }
+
         /* =========================================
            MOBILE OPTIMIZATION (BOTTOM SHEET STYLE)
            ========================================= */
@@ -230,7 +251,6 @@
             .tabs { padding: 10px 15px; }
             .sidebar-content { padding: 10px 15px 80px 15px; }
             
-            /* Penyesuaian widget untuk mobile biar ngga nabrak Geocoder */
             .music-widget { top: auto; bottom: calc(var(--bottom-sheet-h) + 20px); left: 15px; }
             .music-text { display: none; }
             .fab { bottom: calc(var(--bottom-sheet-h) + 20px); right: 15px; }
@@ -295,6 +315,9 @@
             
             <div class="sidebar-content">
                 <div id="tab-journal" class="tab-panel active">
+                    
+                    <div id="miniDashboard"></div>
+
                     <div id="storyList">
                         <div style="text-align:center; margin-top:50px; color:#aaa;">
                             <i class="fa-solid fa-circle-notch fa-spin"></i> Mengingat kembali...
@@ -390,7 +413,6 @@
     const auth = firebase.auth();
     auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
 
-    // FUNGSI LOGOUT (KLIK STATUS RUANG TERBUKA)
     window.kunciPintu = () => {
         if(confirm("Tutup dan kunci kembali ruang rahasia ini?")) {
             auth.signOut().then(() => {
@@ -419,9 +441,7 @@
     let tempMarker = null;
     let isAddingMode = false;
 
-    // ==========================================
-    // 4. FITUR GEOCODING (PENCARIAN TEMPAT PINTAR)
-    // ==========================================
+    // --- 4. FITUR GEOCODING ---
     const geocoder = L.Control.geocoder({
         defaultMarkGeocode: false,
         placeholder: "Cari kenangan di...",
@@ -429,20 +449,11 @@
     })
     .on('markgeocode', function(e) {
         const latlng = e.geocode.center;
-        
-        // Terbang ke lokasi
         map.flyTo(latlng, 16);
-
-        // Hapus marker sementara lama jika ada
         if(tempMarker) map.removeLayer(tempMarker);
-        
-        // Tambahkan marker sementara baru
         tempMarker = L.marker(latlng).addTo(map);
-
-        // Bersihkan nama tempat dari alamat yang terlalu panjang (ambil nama utamanya saja)
         let placeName = e.geocode.name.split(',')[0];
 
-        // Buka form isian
         setTimeout(() => {
             document.getElementById('modalData').classList.add('active');
             document.getElementById('formTitle').innerText = "Titik Baru (Dari Pencarian)";
@@ -452,12 +463,11 @@
             document.getElementById('inpLat').value = latlng.lat;
             document.getElementById('inpLng').value = latlng.lng;
             document.getElementById('inpDate').value = new Date().toISOString().split('T')[0];
-        }, 500); // Jeda setengah detik biar nggak kaget
+        }, 500); 
         
         isAddingMode = false; 
         document.getElementById('map').style.cursor = "grab";
-    })
-    .addTo(map);
+    }).addTo(map);
 
 
     // --- 5. LOGIC WIDGETS & DATA ---
@@ -535,17 +545,28 @@
         layerBox.appendChild(div);
     });
 
+    // --- RENDER DATA FIREBASE, STATISTIK, DAN TOMBOL RUTE ---
     db.collection('memories').orderBy('date', 'desc').onSnapshot(snap => {
         Object.values(layerGroups).forEach(l => l.clearLayers());
         const list = document.getElementById('storyList');
+        const dashboard = document.getElementById('miniDashboard');
         list.innerHTML = '';
 
-        if(snap.empty) list.innerHTML = '<div style="text-align:center;margin-top:20px;color:#999; font-style:italic;">Belum ada titik kenangan.<br>Gunakan fitur <b>Pencarian</b> atau klik tombol <b>+</b> di pojok kanan bawah.</div>';
+        if(snap.empty) {
+            list.innerHTML = '<div style="text-align:center;margin-top:20px;color:#999; font-style:italic;">Belum ada titik kenangan.<br>Gunakan fitur <b>Pencarian</b> atau klik tombol <b>+</b> di pojok kanan bawah.</div>';
+            dashboard.innerHTML = ''; 
+            return;
+        }
+
+        let totalTitik = snap.size;
+        let categoryCounts = { history: 0, food: 0, date: 0, coffe: 0 };
 
         snap.forEach(doc => {
             const d = doc.data();
             const id = doc.id;
             const s = catsStyle[d.category] || catsStyle.history;
+
+            if(categoryCounts[d.category] !== undefined) categoryCounts[d.category]++;
 
             const iconHtml = `<div class="marker-pin" style="background:${s.col};">
                 <i class="fa-solid ${s.ico}" style="transform:rotate(45deg); color:white; font-size:0.9rem"></i>
@@ -555,11 +576,15 @@
                 icon: L.divIcon({ className:'', html:iconHtml, iconSize:[32,32], iconAnchor:[16,32], popupAnchor:[0,-35] })
             });
             
+            // TOMBOL GOOGLE MAPS DITAMBAHKAN DI SINI
             marker.bindPopup(`
-                <div style="text-align:center; min-width: 150px;">
+                <div style="text-align:center; min-width: 160px;">
                     <b style="font-family:'Playfair Display'; font-size:1.2rem; color:${s.col}">${d.title}</b><br>
                     <span style="font-size:0.75rem; color:#888; font-weight:600; letter-spacing:1px; text-transform:uppercase;">${d.date}</span><br>
                     <p style="margin:8px 0 0 0; font-size:0.95rem; font-family:'Jost';">${d.desc}</p>
+                    <a href="https://www.google.com/maps/dir/?api=1&destination=${d.lat},${d.lng}" target="_blank" class="btn-route">
+                        <i class="fa-solid fa-location-arrow"></i> Bawa Aku ke Sana
+                    </a>
                 </div>
             `);
             
@@ -595,6 +620,25 @@
             };
             list.appendChild(card);
         });
+
+        // RENDER DASHBOARD STATISTIK MINI
+        let topCategory = Object.keys(categoryCounts).reduce((a, b) => categoryCounts[a] > categoryCounts[b] ? a : b);
+        let topCategoryLabel = categoryCounts[topCategory] > 0 ? catsStyle[topCategory].label : "-";
+        let topCategoryIcon = categoryCounts[topCategory] > 0 ? catsStyle[topCategory].ico : "fa-map-location-dot";
+
+        dashboard.innerHTML = `
+            <div class="mini-stats">
+                <div class="stat-box">
+                    <span class="stat-val">${totalTitik}</span>
+                    <span class="stat-label">Total Titik</span>
+                </div>
+                <div style="width: 1px; height: 30px; background: rgba(216,27,96,0.2);"></div>
+                <div class="stat-box">
+                    <span class="stat-val"><i class="fa-solid ${topCategoryIcon}"></i></span>
+                    <span class="stat-label">Paling Sering:<br>${topCategoryLabel}</span>
+                </div>
+            </div>
+        `;
     });
 
     window.prepareEdit = (id, t, d, c, desc, lat, lng) => {
