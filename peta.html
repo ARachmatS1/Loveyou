@@ -320,10 +320,10 @@
                 <div style="flex:1">
                     <label class="form-label">Kategori</label>
                     <select id="inpCat" class="form-input">
-                        <option value="history">Sejarah Kita</option>
-                        <option value="food">Kulineran</option>
-                        <option value="date">Jalan-Jalan</option>
-                        <option value="dream">Impian</option>
+                        <option value="history">Momen</option>
+                        <option value="food">Kuliner</option>
+                        <option value="date">Main</option>
+                        <option value="coffe">Kafe</option>
                     </select>
                 </div>
             </div>
@@ -414,7 +414,7 @@
         history: L.layerGroup().addTo(map),
         food: L.layerGroup().addTo(map),
         date: L.layerGroup().addTo(map),
-        dream: L.layerGroup().addTo(map)
+        coffe: L.layerGroup().addTo(map)
     };
     let tempMarker = null;
     let isAddingMode = false;
@@ -515,10 +515,10 @@
     }
 
     const catsStyle = {
-        history: { col: '#D81B60', ico: 'fa-heart', label: 'Sejarah Kita' },
+        history: { col: '#D81B60', ico: 'fa-heart', label: 'Momen' },
         food: { col: '#F57C00', ico: 'fa-utensils', label: 'Kulineran' },
-        date: { col: '#8E24AA', ico: 'fa-ticket', label: 'Jalan-Jalan' },
-        dream: { col: '#FFD700', ico: 'fa-star', label: 'Impian' }
+        date: { col: '#8E24AA', ico: 'fa-motorcycle', label: 'Main' },
+        coffe: { col: '#FFD700', ico: 'fa-mug-hot', label: 'Kafe' }
     };
 
     const layerBox = document.getElementById('layerControls');
